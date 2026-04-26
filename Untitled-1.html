@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Библиотека+ | Админ НЕ авто-вход</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
+        body.light { background: #f5f3ef; }
+        body.dark { background: #1a1a2e; color: #eee; }
+        body.dark .top-bar, body.dark .filters-bar, body.dark .book-card,
+        body.dark .panel, body.dark .admin-panel, body.dark .modal-content,
+        body.dark .book-category, body.dark .cat-btn,
+        body.dark .discussion-card, body.dark .comment-card,
+        body.dark .feedback-card {
+            background: #2d2d44;
+            color: #eee;
+            border-color: #444;
+        }
+        body.dark .cat-btn { background: #3d3d5c; color: #eee; }
+        body.dark .cat-btn.active { background: #20b2aa; }
+        body.dark input, body.dark select, body.dark textarea {
+            background: #3d3d5c;
+            color: #eee;
+            border-color: #555;
+        }
+        .side-menu {
+            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+            background: #2c2e3a; color: #f0f0f0; z-index: 1000;
+            transition: left 0.3s; padding: 1.5rem 0;
+        }
+        body.dark .side-menu { background: #1a1a2e; }
+        .side-menu.open { left: 0; }
+        .menu-header { padding: 0 1.5rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        .menu-item { padding: 0.9rem 1.8rem; display: flex; gap: 14px; cursor: pointer; }
+        .menu-item:hover { background: #3f4254; }
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 999; display: none;
+        }
+        .overlay.active { display: block; }
+        .main-content { max-width: 1400px; margin: 0 auto; padding: 1rem; }
+
+        .top-bar {
+            background: white; border-radius: 2rem; padding: 0.8rem 1.2rem;
+            display: flex; align-items: center; gap: 16px; margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .burger-btn {
+            background: none; border: none; font-size: 1.8rem; cursor: pointer;
+            width: 44px; height: 44px; border-radius: 30px;
+            color: #20b2aa; transition: 0.1s;
+        }
+        .burger-btn:hover { background: #e0f4f2; }
+        .logo { font-weight: 700; font-size: 1.4rem; background: linear-gradient(135deg, #2c5f2d, #8b5a2b); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .user-badge { margin-left: auto; background: #e9ecef; padding: 6px 14px; border-radius: 40px; cursor: pointer; }
+        .theme-toggle { background: #e9ecef; border: none; padding: 6px 14px; border-radius: 40px; cursor: pointer; margin-left: 10px; }
+
+        .filters-bar { background: white; border-radius: 1.5rem; padding: 1rem; margin-bottom: 1.5rem; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .search-box input { flex: 1; padding: 12px 18px; border-radius: 2rem; border: 1px solid #ddd; }
+        .categories { display: flex; flex-wrap: wrap; gap: 10px; }
+        .cat-btn { background: #f0f0f0; border: none; padding: 8px 18px; border-radius: 2rem; cursor: pointer; }
+        .cat-btn.active { background: #2c5f2d; color: white; }
+
+        .books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+        .book-card { background: white; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .book-cover { width: 100%; height: 180px; object-fit: cover; background: #e9ecef; }
+        .book-info { padding: 1rem; }
+        .book-title { font-weight: 700; font-size: 1.1rem; }
+        .book-author { color: #6c757d; font-size: 0.85rem; margin: 4px 0; }
+        .book-rating { color: #ffc107; margin: 5px 0; font-size: 0.85rem; }
+        .video-links { margin: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+        .video-link { background: #f0f0f0; padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; text-decoration: none; color: #2c5f2d; display: inline-flex; align-items: center; gap: 4px; }
+        body.dark .video-link { background: #3d3d5c; color: #20b2aa; }
+        .price-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; margin: 5px 0; }
+        .free { background: #d4edda; color: #155724; }
+        .paid { background: #fff3cd; color: #856404; }
+        .book-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        button { background: #2c5f2d; border: none; padding: 6px 12px; border-radius: 2rem; color: white; cursor: pointer; font-size: 0.8rem; }
+        button.admin-btn { background: #9e7b4c; }
+        button.danger { background: #b23c1c; }
+        button.read-btn { background: #20b2aa; }
+        .panel { background: white; border-radius: 1.5rem; padding: 1.5rem; margin-top: 2rem; }
+        .admin-panel { background: #fef7e0; margin-top: 2rem; padding: 1.5rem; border-radius: 1.5rem; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border-radius: 2rem; border: 1px solid #ddd; }
+        .file-upload { background: #e9ecef; border-radius: 2rem; padding: 12px; text-align: center; cursor: pointer; margin: 10px 0; }
+        .users-list { margin-top: 1rem; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; }
+        .discussions-grid { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .discussion-card { background: white; border-radius: 1rem; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #20b2aa; }
+        .discussion-title { font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        .discussion-meta { font-size: 0.8rem; color: #6c757d; margin: 5px 0; }
+        .pinned { background: #fff3cd; border-left-color: #ffc107; }
+        .comment-card { background: #f8f9fa; border-radius: 0.8rem; padding: 10px; margin: 8px 0; }
+        .feedback-card { background: #f8f9fa; border-radius: 1rem; padding: 12px; margin-bottom: 12px; border-left: 4px solid #20b2aa; }
+        .admin-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; width: 95%; max-width: 800px; max-height: 90vh;
+            border-radius: 1.5rem; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .modal-header {
+            padding: 1rem; background: #2c2e3a; color: white;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap;
+        }
+        .modal-body { flex: 1; overflow-y: auto; padding: 1rem; background: #f5f5f0; }
+        .close-modal { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: white; }
+        .checkbox-label { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+        .username-warning { color: #dc3545; font-size: 0.8rem; margin-top: -5px; margin-bottom: 10px; display: none; }
+        @media (max-width: 640px) { .books-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="light">
+    <div class="side-menu" id="sideMenu">
+        <div class="menu-header"><h3>📚 Меню</h3></div>
+        <div class="menu-item" data-page="catalog">📖 Каталог книг</div>
+        <div class="menu-item" data-page="rentals">📦 Мои аренды</div>
+        <div class="menu-item" data-page="discussions">💬 Дискуссии</div>
+        <div class="menu-item" data-page="profile">👤 Личный кабинет</div>
+        <div class="menu-item" data-page="feedback">📨 Обратная связь</div>
+        <div class="menu-item" id="adminMenuItem" style="display:none;">⚙️ Админ-панель</div>
+        <div class="menu-item" id="logoutMenuItem">🚪 Выйти</div>
+    </div>
+    <div class="overlay" id="overlay"></div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <button class="burger-btn" id="burgerBtn">☰</button>
+            <div class="logo">📚 Библиотека+</div>
+            <button class="theme-toggle" id="themeToggle">🌙 Тёмная тема</button>
+            <div class="user-badge" id="userBadge">Войти</div>
+        </div>
+
+        <div id="catalogSection">
+            <div class="filters-bar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Поиск книг...">
+                    <button id="clearSearch">Сбросить</button>
+                </div>
+                <div class="categories" id="categoriesContainer"></div>
+            </div>
+            <div id="catalogContainer" class="books-grid"></div>
+        </div>
+
+        <div id="rentalsSection" style="display:none;"><h2>📦 Мои аренды</h2><div id="rentalsList" class="panel"></div></div>
+        <div id="discussionsSection" style="display:none;"><div style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:20px;"><h2>💬 Обсуждения</h2><button id="newDiscussionBtn" class="read-btn">➕ Создать тему</button></div><div id="discussionsList" class="discussions-grid"></div></div>
+        <div id="profileSection" style="display:none;"><h2>👤 Личный кабинет</h2><div id="profileInfo" class="panel"></div></div>
+        <div id="feedbackSection" style="display:none;"><h2>📨 Обратная связь</h2><div class="panel"><textarea id="feedbackText" rows="5" placeholder="Напишите администратору..."></textarea><button id="sendFeedbackBtn">✉️ Отправить</button><div id="userFeedbackList" style="margin-top:20px;"></div></div></div>
+
+        <div id="adminSection" style="display:none;" class="admin-panel">
+            <h3>⚙️ Админ-панель</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                <button id="exportDBBtn" class="admin-btn">💾 Экспортировать всё (PDF+данные)</button>
+                <button id="importDBBtn" class="admin-btn">📂 Импортировать из файла</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none;">
+            </div>
+            <hr>
+            <h4>👥 Управление пользователями</h4>
+            <div id="usersListContainer" class="users-list"></div>
+            <hr>
+            <h4>📚 Управление книгами</h4>
+            <select id="editBookSelect"></select>
+            <input type="text" id="editTitle" placeholder="Название">
+            <input type="text" id="editAuthor" placeholder="Автор">
+            <select id="editCategory"><option>Наука</option><option>Искусство</option><option>Литература</option><option>IT</option><option>Языки</option><option>Гуманитария</option></select>
+            <select id="editType"><option value="free">Бесплатная</option><option value="paid">Платная</option></select>
+            <div id="editPaidFields" style="display:none;"><input type="number" id="editPrice" placeholder="Цена (руб)"></div>
+            <input type="number" id="editDays" placeholder="Срок (дней)">
+            <input type="text" id="editCover" placeholder="URL обложки">
+            <input type="text" id="editQR" placeholder="QR код для оплаты">
+            <input type="text" id="editVideoLinks" placeholder="Ссылки на видео (через запятую)">
+            <button id="updateBookBtn">💾 Сохранить изменения</button>
+            <button id="deleteBookBtn" class="danger">🗑️ Удалить книгу</button>
+            <hr>
+            <h4>➕ Добавить новую книгу (PDF)</h4>
+            <input type="text" id="newTitle" placeholder="Название">
+            <input type="text" id="newAuthor" placeholder="Автор">
+            <select id="newCategory"><option>Наука</option><option>Искусство</option><option>Литература</option><option>IT</option><option>Языки</option><option>Гуманитария</option></select>
+            <select id="newType"><option value="free">Бесплатная</option><option value="paid">Платная</option></select>
+            <div id="newPaidFields" style="display:none;"><input type="number" id="newPrice" placeholder="Цена (руб)" value="100"></div>
+            <input type="number" id="newDays" placeholder="Срок (дней)" value="14">
+            <input type="text" id="newCover" placeholder="URL обложки">
+            <input type="text" id="newQR" placeholder="QR код для оплаты">
+            <input type="text" id="newVideoLinks" placeholder="Ссылки на видео (через запятую)">
+            <div class="file-upload" id="uploadPDFBtn">📄 Загрузить PDF файл</div>
+            <input type="file" id="pdfFileInput" accept=".pdf" style="display:none;">
+            <button id="addBookBtn">➕ Добавить книгу</button>
+            <hr>
+            <h4>📌 Управление дискуссиями</h4>
+            <select id="editDiscussionSelect"></select>
+            <button id="pinDiscussionBtn">📌 Закрепить</button>
+            <button id="unpinDiscussionBtn">📍 Открепить</button>
+            <button id="deleteDiscussionBtn" class="danger">🗑️ Удалить тему</button>
+            <hr>
+            <h4>📜 Редактировать пользовательское соглашение</h4>
+            <textarea id="termsText" rows="8"></textarea>
+            <button id="saveTermsBtn">💾 Сохранить соглашение</button>
+        </div>
+    </div>
+
+    <div id="readModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 id="modalTitle"></h3><div><span class="stars" id="ratingStars" style="font-size:1.5rem; margin-right:15px;">☆☆☆☆☆</span><button class="close-modal" id="closeReadModal">&times;</button></div></div><div class="modal-body" id="modalBody"><div id="pdfViewer" style="width:100%; height:100%;"><canvas id="pdfCanvas" style="width:100%"></canvas><div id="pdfControls" style="display:none; margin-top:10px;"><button id="prevPage">◀</button><span id="pageInfo">1 / 1</span><button id="nextPage">▶</button></div></div><div id="textViewer" style="white-space:pre-wrap; display:none;"></div><div id="videoLinksContainer" style="margin-top:15px; padding:10px; background:#f8f9fa; border-radius:1rem;"></div><div id="commentsSection" style="margin-top:20px;"></div></div></div></div>
+    <div id="discussionModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 id="discussionModalTitle"></h3><button class="close-modal" id="closeDiscussionModal">&times;</button></div><div class="modal-body"><div id="discussionComments"></div><textarea id="newCommentText" rows="3" placeholder="Ваш комментарий..."></textarea><button id="submitCommentBtn">💬 Ответить</button></div></div></div>
+    <div id="newDiscussionModal" class="modal"><div class="modal-content" style="max-width:500px;"><div class="modal-header"><h3>Создать обсуждение</h3><button class="close-modal" id="closeNewDiscussionModal">&times;</button></div><div class="modal-body"><input type="text" id="discussionTitle" placeholder="Тема"><select id="discussionBookSelect"></select><textarea id="discussionText" rows="5" placeholder="Текст..."></textarea><button id="createDiscussionBtn">➕ Создать</button></div></div></div>
+    <div id="termsModal" class="modal"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3>📜 Пользовательское соглашение</h3><button class="close-modal" id="closeTermsModal">&times;</button></div><div class="modal-body" id="termsModalBody"></div></div></div>
+    <div id="authModal" class="modal"><div class="modal-content" style="max-width:450px;"><div class="modal-header"><h3 id="authTitle">Вход</h3><button class="close-modal" onclick="closeAuthModal()">&times;</button></div><div class="modal-body"><input type="text" id="authUsername" placeholder="Логин"><div id="usernameWarning" class="username-warning">⚠️ Логин занят</div><input type="password" id="authPassword" placeholder="Пароль"><input type="text" id="secretQuestion" placeholder="Секретный вопрос" style="display:none;"><input type="text" id="secretAnswer" placeholder="Ответ" style="display:none;"><div id="termsCheckboxContainer" style="display:none;"><label class="checkbox-label"><input type="checkbox" id="acceptTerms"> Я принимаю <a href="#" id="showTermsLink">условия пользования</a></label></div><button id="authSubmitBtn">Войти</button><p><a href="#" id="switchAuth">Нет аккаунта? Регистрация</a></p><p><a href="#" id="forgotPasswordLink">Забыли пароль?</a></p></div></div></div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        const DB_NAME = 'LibraryDB';
+        const DB_VERSION = 8;
+        let db = null;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (event) => {
+                    const db_ = event.target.result;
+                    if (!db_.objectStoreNames.contains('books')) db_.createObjectStore('books', { keyPath: 'id' });
+                    if (!db_.objectStoreNames.contains('users')) db_.createObjectStore('users', { keyPath: 'username' });
+                    if (!db_.objectStoreNames.contains('discussions')) db_.createObjectStore('discussions', { keyPath: 'id' });
+                    if (!db_.objectStoreNames.contains('feedbacks')) db_.createObjectStore('feedbacks', { keyPath: 'id' });
+                    if (!db_.objectStoreNames.contains('pendingPayments')) db_.createObjectStore('pendingPayments', { keyPath: 'id' });
+                    if (!db_.objectStoreNames.contains('terms')) db_.createObjectStore('terms', { keyPath: 'id' });
+                };
+            });
+        }
+
+        async function getBooks() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('books', 'readonly');
+                const store = tx.objectStore('books');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveBook(book) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('books', 'readwrite');
+                const store = tx.objectStore('books');
+                const request = store.put(book);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deleteBookById(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('books', 'readwrite');
+                const store = tx.objectStore('books');
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getUsers() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('users', 'readonly');
+                const store = tx.objectStore('users');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getUser(username) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('users', 'readonly');
+                const store = tx.objectStore('users');
+                const request = store.get(username);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveUser(user) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('users', 'readwrite');
+                const store = tx.objectStore('users');
+                const request = store.put(user);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deleteUser(username) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('users', 'readwrite');
+                const store = tx.objectStore('users');
+                const request = store.delete(username);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getDiscussions() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('discussions', 'readonly');
+                const store = tx.objectStore('discussions');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveDiscussion(discussion) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('discussions', 'readwrite');
+                const store = tx.objectStore('discussions');
+                const request = store.put(discussion);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deleteDiscussionById(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('discussions', 'readwrite');
+                const store = tx.objectStore('discussions');
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getFeedbacks() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('feedbacks', 'readonly');
+                const store = tx.objectStore('feedbacks');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveFeedback(feedback) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('feedbacks', 'readwrite');
+                const store = tx.objectStore('feedbacks');
+                const request = store.put(feedback);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deleteFeedbackById(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('feedbacks', 'readwrite');
+                const store = tx.objectStore('feedbacks');
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getPendingPayments() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('pendingPayments', 'readonly');
+                const store = tx.objectStore('pendingPayments');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function savePendingPayment(payment) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('pendingPayments', 'readwrite');
+                const store = tx.objectStore('pendingPayments');
+                const request = store.put(payment);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deletePendingPaymentById(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('pendingPayments', 'readwrite');
+                const store = tx.objectStore('pendingPayments');
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getTerms() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('terms', 'readonly');
+                const store = tx.objectStore('terms');
+                const request = store.get('main');
+                request.onsuccess = () => resolve(request.result ? request.result.text : "Пользовательское соглашение...");
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveTerms(text) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('terms', 'readwrite');
+                const store = tx.objectStore('terms');
+                const request = store.put({ id: 'main', text: text });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function exportDatabase() {
+            const books = await getBooks();
+            const users = await getUsers();
+            const discussions = await getDiscussions();
+            const feedbacks = await getFeedbacks();
+            const pendingPayments = await getPendingPayments();
+            const terms = await getTerms();
+            const exportData = { books, users, discussions, feedbacks, pendingPayments, terms, version: 8 };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `library_export_${new Date().toISOString().slice(0,19)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('Экспорт завершён.');
+        }
+
+        async function importDatabase(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.books) for (let book of data.books) await saveBook(book);
+                    if (data.users) for (let user of data.users) await saveUser(user);
+                    if (data.discussions) for (let disc of data.discussions) await saveDiscussion(disc);
+                    if (data.feedbacks) for (let fb of data.feedbacks) await saveFeedback(fb);
+                    if (data.pendingPayments) for (let pay of data.pendingPayments) await savePendingPayment(pay);
+                    if (data.terms) await saveTerms(data.terms);
+                    alert('Импорт успешен! Перезагрузите страницу.');
+                    location.reload();
+                } catch(err) {
+                    alert('Ошибка импорта: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Глобальные переменные
+        let currentUser = null;
+        let books = [];
+        let users = [];
+        let discussions = [];
+        let feedbacks = [];
+        let pendingPayments = [];
+        let termsText = "";
+        let currentCategory = "Все";
+        let searchQuery = "";
+        let currentPageName = "catalog";
+        let currentBookId = null;
+        let readingStartTime = null;
+        let currentDiscussionId = null;
+        let pdfDoc = null, currentPdfPage = 1;
+        const categories = ["Все", "Наука", "Искусство", "Литература", "IT", "Языки", "Гуманитария"];
+
+        async function ensureDefaultUsers() {
+            let admin = await getUser('admin');
+            if (!admin) {
+                admin = { username: "admin", password: "admin", secretQuestion: "Ваш цвет?", secretAnswer: "синий", isAdmin: true, rentals: [], history: [], readingStats: { totalMinutes: 0, booksRead: 0 } };
+                await saveUser(admin);
+            } else if (admin.password !== "admin") {
+                admin.password = "admin";
+                await saveUser(admin);
+            }
+            let reader = await getUser('reader');
+            if (!reader) {
+                reader = { username: "reader", password: "123", secretQuestion: "Ваш город?", secretAnswer: "Москва", isAdmin: false, rentals: [], history: [], readingStats: { totalMinutes: 0, booksRead: 0 } };
+                await saveUser(reader);
+            }
+        }
+
+        async function loadAllData() {
+            await openDB();
+            await ensureDefaultUsers();
+            books = await getBooks();
+            users = await getUsers();
+            discussions = await getDiscussions();
+            feedbacks = await getFeedbacks();
+            pendingPayments = await getPendingPayments();
+            termsText = await getTerms();
+            const stored = localStorage.getItem('lib_currentUser');
+            if (stored) {
+                const found = users.find(u => u.username === stored);
+                if (found) currentUser = found;
+            }
+            renderCurrentPage();
+        }
+
+        function addHistory(desc) {
+            if (!currentUser) return;
+            currentUser.history = currentUser.history || [];
+            currentUser.history.unshift({ text: desc, date: new Date().toLocaleString() });
+            if (currentUser.history.length > 50) currentUser.history.pop();
+            saveUser(currentUser);
+        }
+
+        function canRead(book) {
+            if (!currentUser) return false;
+            if (book.type === 'free') return true;
+            return currentUser.rentals?.some(r => r.bookId === book.id && r.status === 'active');
+        }
+
+        async function rentFreeBook(book) {
+            if (!currentUser) { alert("Сначала войдите"); return; }
+            if (currentUser.rentals?.some(r => r.bookId === book.id)) { alert("Уже арендована"); return; }
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + book.days);
+            currentUser.rentals = currentUser.rentals || [];
+            currentUser.rentals.push({
+                bookId: book.id, title: book.title, author: book.author,
+                rentDate: new Date().toLocaleDateString(), dueDate: dueDate.toLocaleDateString(),
+                status: 'active', cost: 0
+            });
+            addHistory(`Взял(а) "${book.title}"`);
+            await saveUser(currentUser);
+            alert(`Книга "${book.title}" добавлена!`);
+            renderCurrentPage();
+        }
+
+        async function buyPaidBook(book) {
+            if (!currentUser) { alert("Сначала войдите"); return; }
+            if (currentUser.rentals?.some(r => r.bookId === book.id)) { alert("Уже приобретена"); return; }
+            if (confirm(`💰 "${book.title}" стоит ${book.price} руб. Оплатить? (демо)`)) {
+                const dueDate = new Date();
+                dueDate.setDate(dueDate.getDate() + book.days);
+                currentUser.rentals = currentUser.rentals || [];
+                currentUser.rentals.push({
+                    bookId: book.id, title: book.title, author: book.author,
+                    rentDate: new Date().toLocaleDateString(), dueDate: dueDate.toLocaleDateString(),
+                    status: 'active', cost: book.price
+                });
+                addHistory(`Куплена "${book.title}"`);
+                await saveUser(currentUser);
+                alert(`✅ Доступ открыт!`);
+                renderCurrentPage();
+            }
+        }
+
+        async function rateBook(bookId, rating) {
+            const book = books.find(b => b.id === bookId);
+            if (book) {
+                book.rating = book.rating || { sum: 0, count: 0 };
+                book.rating.sum += rating;
+                book.rating.count++;
+                await saveBook(book);
+                renderCurrentPage();
+                updateRatingStars();
+            }
+        }
+
+        async function addComment(bookId, text) {
+            if (!currentUser) { alert("Войдите"); return; }
+            const book = books.find(b => b.id === bookId);
+            if (book) {
+                book.comments = book.comments || [];
+                book.comments.unshift({ user: currentUser.username, text: text, date: new Date().toLocaleString() });
+                await saveBook(book);
+                renderComments(bookId);
+            }
+        }
+
+        function updateRatingStars() {
+            const book = books.find(b => b.id === currentBookId);
+            if (book && book.rating && book.rating.count > 0) {
+                const avg = book.rating.sum / book.rating.count;
+                const stars = "★".repeat(Math.round(avg)) + "☆".repeat(5 - Math.round(avg));
+                document.getElementById("ratingStars").innerHTML = stars;
+            } else {
+                document.getElementById("ratingStars").innerHTML = "☆☆☆☆☆";
+            }
+        }
+
+        function renderVideoLinks(links) {
+            if (!links || links.length === 0) return '';
+            let html = '<div class="video-links">';
+            links.forEach(link => { if (link.trim()) html += `<a href="${link.trim()}" target="_blank" class="video-link">📺 Видео</a>`; });
+            html += '</div>';
+            return html;
+        }
+
+        function renderVideoLinksModal(links) {
+            if (!links || links.length === 0) return '';
+            let html = '<div><strong>📺 Полезные видео:</strong><ul>';
+            links.forEach(link => html += `<li><a href="${link}" target="_blank">${link}</a></li>`);
+            html += '</ul></div>';
+            return html;
+        }
+
+        function renderComments(bookId) {
+            const book = books.find(b => b.id === bookId);
+            const container = document.getElementById("commentsSection");
+            if (!book) return;
+            container.innerHTML = `
+                <h4>💬 Отзывы (${book.comments?.length || 0})</h4>
+                <div style="display:flex; gap:8px;"><input type="text" id="newComment" placeholder="Ваш отзыв..." style="flex:1"><button id="submitComment">Отправить</button></div>
+                <div id="commentsList">${(book.comments || []).map(c => `<div><strong>${c.user}</strong> (${c.date})<br>${c.text}</div>`).join('') || '<p>Нет отзывов</p>'}</div>
+            `;
+            document.getElementById("submitComment").onclick = () => {
+                const text = document.getElementById("newComment").value.trim();
+                if (text) addComment(bookId, text);
+            };
+        }
+
+        function readBook(book) {
+            if (!canRead(book)) { alert("Нет доступа"); return; }
+            if (readingStartTime) updateReadingTime();
+            readingStartTime = Date.now();
+            currentBookId = book.id;
+            document.getElementById("modalTitle").innerText = `${book.title} — ${book.author}`;
+            if (book.pdfData) {
+                document.getElementById("pdfViewer").style.display = "block";
+                document.getElementById("textViewer").style.display = "none";
+                const canvas = document.getElementById("pdfCanvas");
+                const loadingTask = pdfjsLib.getDocument({ data: atob(book.pdfData.split(',')[1]) });
+                loadingTask.promise.then(pdf => {
+                    pdfDoc = pdf;
+                    currentPdfPage = 1;
+                    renderPage(1);
+                    document.getElementById("pdfControls").style.display = "flex";
+                    document.getElementById("prevPage").onclick = () => { if (currentPdfPage > 1) renderPage(currentPdfPage - 1); };
+                    document.getElementById("nextPage").onclick = () => { if (currentPdfPage < pdfDoc.numPages) renderPage(currentPdfPage + 1); };
+                }).catch(err => { alert("Ошибка загрузки PDF"); });
+            } else {
+                document.getElementById("pdfViewer").style.display = "none";
+                document.getElementById("textViewer").style.display = "block";
+                document.getElementById("textViewer").innerHTML = (book.content || "Содержание отсутствует.").replace(/\n/g, '<br>');
+            }
+            const videoContainer = document.getElementById("videoLinksContainer");
+            videoContainer.innerHTML = book.videoLinks ? renderVideoLinksModal(book.videoLinks) : '';
+            renderComments(book.id);
+            document.getElementById("readModal").style.display = "flex";
+            addHistory(`Читал(а) "${book.title}"`);
+            if (currentUser) {
+                currentUser.readingStats = currentUser.readingStats || { totalMinutes: 0, booksRead: 0 };
+                currentUser.readingStats.booksRead++;
+                saveUser(currentUser);
+            }
+        }
+
+        function renderPage(num) {
+            pdfDoc.getPage(num).then(page => {
+                const canvas = document.getElementById("pdfCanvas");
+                const ctx = canvas.getContext('2d');
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                page.render({ canvasContext: ctx, viewport: viewport });
+                document.getElementById("pageInfo").innerText = `Страница ${num} / ${pdfDoc.numPages}`;
+                currentPdfPage = num;
+            });
+        }
+
+        function updateReadingTime() {
+            if (readingStartTime && currentBookId && currentUser) {
+                const minutes = Math.floor((Date.now() - readingStartTime) / 60000);
+                if (minutes > 0) {
+                    currentUser.readingStats.totalMinutes += minutes;
+                    saveUser(currentUser);
+                }
+                readingStartTime = null;
+            }
+        }
+
+        async function renderUsersList() {
+            const container = document.getElementById("usersListContainer");
+            if (!container) return;
+            const allUsers = await getUsers();
+            container.innerHTML = '<h4>Список пользователей:</h4>';
+            allUsers.forEach(user => {
+                const isSelf = currentUser && currentUser.username === user.username;
+                const deleteBtn = (currentUser?.isAdmin && !isSelf) ? `<button class="delete-user-btn danger" data-username="${user.username}">🗑️ Удалить</button>` : '';
+                container.innerHTML += `<div class="user-item"><div><strong>${user.username}</strong> ${user.isAdmin ? '(Админ)' : ''} — аренд: ${user.rentals?.length || 0}</div>${deleteBtn}</div>`;
+            });
+            document.querySelectorAll('.delete-user-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    const username = btn.dataset.username;
+                    if (confirm(`Удалить пользователя "${username}"?`)) {
+                        await deleteUser(username);
+                        for (let book of books) {
+                            if (book.comments) book.comments = book.comments.filter(c => c.user !== username);
+                            await saveBook(book);
+                        }
+                        for (let disc of discussions) {
+                            if (disc.author === username) await deleteDiscussionById(disc.id);
+                            else if (disc.comments) disc.comments = disc.comments.filter(c => c.user !== username);
+                            await saveDiscussion(disc);
+                        }
+                        for (let fb of feedbacks) if (fb.from === username) await deleteFeedbackById(fb.id);
+                        await loadAllData();
+                        renderUsersList();
+                        alert(`Пользователь "${username}" удалён.`);
+                    }
+                };
+            });
+        }
+
+        async function addBookWithPDF() {
+            const title = document.getElementById("newTitle").value.trim();
+            const author = document.getElementById("newAuthor").value.trim();
+            if (!title || !author) { alert("Заполните название и автора"); return; }
+            const fileInput = document.getElementById("pdfFileInput");
+            if (!fileInput.files || !fileInput.files[0]) { alert("Выберите PDF"); return; }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const pdfBase64 = e.target.result;
+                const videoLinksStr = document.getElementById("newVideoLinks").value.trim();
+                const videoLinks = videoLinksStr ? videoLinksStr.split(',').map(s => s.trim()).filter(s => s) : [];
+                const newBook = {
+                    id: Date.now(),
+                    title, author,
+                    category: document.getElementById("newCategory").value,
+                    type: document.getElementById("newType").value,
+                    price: document.getElementById("newType").value === "paid" ? parseInt(document.getElementById("newPrice").value) : 0,
+                    days: parseInt(document.getElementById("newDays").value),
+                    coverUrl: document.getElementById("newCover").value,
+                    pdfData: pdfBase64,
+                    fileType: "pdf",
+                    chapters: [],
+                    rating: { sum: 0, count: 0 },
+                    comments: [],
+                    qrCode: document.getElementById("newQR").value,
+                    videoLinks: videoLinks
+                };
+                await saveBook(newBook);
+                alert("Книга добавлена");
+                await loadAllData();
+                renderCurrentPage();
+                fillAdminSelect();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function updateBookMetadata() {
+            const id = parseInt(document.getElementById("editBookSelect").value);
+            const book = books.find(b => b.id === id);
+            if (!book) return;
+            const videoLinksStr = document.getElementById("editVideoLinks").value.trim();
+            const videoLinks = videoLinksStr ? videoLinksStr.split(',').map(s => s.trim()).filter(s => s) : [];
+            book.title = document.getElementById("editTitle").value;
+            book.author = document.getElementById("editAuthor").value;
+            book.category = document.getElementById("editCategory").value;
+            book.type = document.getElementById("editType").value;
+            book.price = document.getElementById("editType").value === "paid" ? parseInt(document.getElementById("editPrice").value) : 0;
+            book.days = parseInt(document.getElementById("editDays").value);
+            book.coverUrl = document.getElementById("editCover").value;
+            book.qrCode = document.getElementById("editQR").value;
+            book.videoLinks = videoLinks;
+            await saveBook(book);
+            alert("Обновлено");
+            await loadAllData();
+            renderCurrentPage();
+            fillAdminSelect();
+        }
+
+        async function deleteBookByIdAdmin() {
+            const id = parseInt(document.getElementById("editBookSelect").value);
+            if (confirm("Удалить книгу?")) {
+                await deleteBookById(id);
+                await loadAllData();
+                renderCurrentPage();
+                fillAdminSelect();
+            }
+        }
+
+        function fillAdminSelect() {
+            const select = document.getElementById("editBookSelect");
+            select.innerHTML = books.map(b => `<option value="${b.id}">${b.title}</option>`).join("");
+            if (books.length) select.onchange = () => loadBookToForm(parseInt(select.value));
+            if (books.length) loadBookToForm(parseInt(select.value));
+        }
+
+        function loadBookToForm(id) {
+            const book = books.find(b => b.id === id);
+            if (!book) return;
+            document.getElementById("editTitle").value = book.title;
+            document.getElementById("editAuthor").value = book.author;
+            document.getElementById("editCategory").value = book.category;
+            document.getElementById("editType").value = book.type;
+            document.getElementById("editPrice").value = book.price;
+            document.getElementById("editDays").value = book.days;
+            document.getElementById("editCover").value = book.coverUrl || "";
+            document.getElementById("editQR").value = book.qrCode || "";
+            document.getElementById("editVideoLinks").value = (book.videoLinks || []).join(', ');
+            document.getElementById("editPaidFields").style.display = book.type === "paid" ? "block" : "none";
+        }
+
+        async function renderDiscussions() {
+            const container = document.getElementById("discussionsList");
+            if (!container) return;
+            const bookMap = {};
+            books.forEach(b => bookMap[b.id] = b.title);
+            container.innerHTML = discussions.map(d => `
+                <div class="discussion-card ${d.pinned ? 'pinned' : ''}">
+                    <div class="discussion-title" onclick="openDiscussion(${d.id})">${escapeHtml(d.title)} ${d.pinned ? '📌' : ''}</div>
+                    <div class="discussion-meta">📖 ${bookMap[d.bookId] || 'Общая'} | ✍️ ${d.author} | ${d.date}</div>
+                    <div class="discussion-stats">💬 ${d.comments?.length || 0}</div>
+                    ${currentUser?.isAdmin ? `<div class="admin-actions"><button class="pin-btn" data-id="${d.id}">${d.pinned ? '📍 Открепить' : '📌 Закрепить'}</button><button class="delete-discussion-btn danger" data-id="${d.id}">🗑️</button></div>` : ''}
+                </div>
+            `).join('');
+            if (currentUser?.isAdmin) {
+                document.querySelectorAll(".pin-btn").forEach(btn => btn.onclick = () => togglePinDiscussion(parseInt(btn.dataset.id)));
+                document.querySelectorAll(".delete-discussion-btn").forEach(btn => btn.onclick = () => deleteDiscussion(parseInt(btn.dataset.id)));
+            }
+        }
+
+        function openDiscussion(id) {
+            const discussion = discussions.find(d => d.id === id);
+            if (!discussion) return;
+            currentDiscussionId = id;
+            document.getElementById("discussionModalTitle").innerHTML = discussion.title;
+            const commentsHtml = discussion.comments.map((c, idx) => `<div class="comment-card"><strong>${c.user}</strong> (${c.date})<p>${c.text}</p>${currentUser?.isAdmin ? `<button class="delete-comment-btn" data-idx="${idx}">🗑️</button>` : ''}</div>`).join('');
+            document.getElementById("discussionComments").innerHTML = commentsHtml || "<p>Нет комментариев</p>";
+            document.getElementById("discussionModal").style.display = "flex";
+            document.querySelectorAll(".delete-comment-btn").forEach(btn => {
+                btn.onclick = async () => {
+                    const idx = parseInt(btn.dataset.idx);
+                    discussion.comments.splice(idx, 1);
+                    await saveDiscussion(discussion);
+                    openDiscussion(discussion);
+                };
+            });
+        }
+
+        async function addDiscussionComment() {
+            if (!currentUser) return;
+            const text = document.getElementById("newCommentText").value.trim();
+            if (!text) return;
+            const discussion = discussions.find(d => d.id === currentDiscussionId);
+            if (discussion) {
+                discussion.comments.push({ user: currentUser.username, text, date: new Date().toLocaleString() });
+                await saveDiscussion(discussion);
+                document.getElementById("newCommentText").value = "";
+                openDiscussion(discussion);
+            }
+        }
+
+        async function createDiscussion() {
+            if (!currentUser) { alert("Войдите"); return; }
+            const title = document.getElementById("discussionTitle").value.trim();
+            const bookId = parseInt(document.getElementById("discussionBookSelect").value);
+            const text = document.getElementById("discussionText").value.trim();
+            if (!title) return;
+            const newDiscussion = { id: Date.now(), title, bookId, author: currentUser.username, text, date: new Date().toLocaleString(), pinned: false, comments: [] };
+            await saveDiscussion(newDiscussion);
+            discussions = await getDiscussions();
+            document.getElementById("newDiscussionModal").style.display = "none";
+            renderDiscussions();
+        }
+
+        async function deleteDiscussion(id) {
+            if (confirm("Удалить тему?")) {
+                await deleteDiscussionById(id);
+                discussions = discussions.filter(d => d.id !== id);
+                renderDiscussions();
+                if (currentUser?.isAdmin) fillDiscussionSelect();
+            }
+        }
+
+        async function togglePinDiscussion(id) {
+            const d = discussions.find(d => d.id === id);
+            if (d) { d.pinned = !d.pinned; await saveDiscussion(d); renderDiscussions(); }
+        }
+
+        function fillDiscussionSelect() {
+            const select = document.getElementById("editDiscussionSelect");
+            select.innerHTML = discussions.map(d => `<option value="${d.id}">${d.title}</option>`).join("");
+        }
+
+        async function sendFeedback() {
+            if (!currentUser) { alert("Войдите"); return; }
+            const text = document.getElementById("feedbackText").value.trim();
+            if (!text) return;
+            const newFeedback = { id: Date.now(), from: currentUser.username, text, date: new Date().toLocaleString(), status: "new" };
+            await saveFeedback(newFeedback);
+            feedbacks.push(newFeedback);
+            document.getElementById("feedbackText").value = "";
+            renderUserFeedback();
+        }
+
+        function renderUserFeedback() {
+            const container = document.getElementById("userFeedbackList");
+            if (!currentUser) return;
+            const my = feedbacks.filter(f => f.from === currentUser.username);
+            container.innerHTML = '<h4>Ваши сообщения:</h4>' + my.map(f => `<div class="feedback-card"><strong>Вы</strong> (${f.date})<p>${f.text}</p><div>${f.status === 'new' ? '✉️ Не прочитано' : '✅ Прочитано'}</div></div>`).join('');
+        }
+
+        async function renderAdminFeedback() {
+            const container = document.getElementById("adminFeedbackList");
+            if (!container) return;
+            container.innerHTML = feedbacks.map(f => `<div class="feedback-card"><strong>${f.from}</strong> (${f.date})<p>${f.text}</p><button class="mark-read-btn" data-id="${f.id}">✅ Прочитано</button><button class="delete-feedback-btn danger" data-id="${f.id}">🗑️</button></div>`).join('');
+            document.querySelectorAll(".mark-read-btn").forEach(btn => {
+                btn.onclick = async () => {
+                    const fb = feedbacks.find(f => f.id === parseInt(btn.dataset.id));
+                    if (fb) { fb.status = "read"; await saveFeedback(fb); renderAdminFeedback(); }
+                };
+            });
+            document.querySelectorAll(".delete-feedback-btn").forEach(btn => {
+                btn.onclick = async () => {
+                    const id = parseInt(btn.dataset.id);
+                    await deleteFeedbackById(id);
+                    feedbacks = feedbacks.filter(f => f.id !== id);
+                    renderAdminFeedback();
+                };
+            });
+        }
+
+        function renderProfile() {
+            const container = document.getElementById("profileInfo");
+            if (!currentUser) { container.innerHTML = '<div class="panel">Не авторизован</div>'; return; }
+            const stats = currentUser.readingStats || { totalMinutes: 0, booksRead: 0 };
+            container.innerHTML = `<div class="panel">
+                <p><strong>👤 Логин:</strong> ${currentUser.username}</p>
+                <p><strong>👑 Админ:</strong> ${currentUser.isAdmin ? "Да" : "Нет"}</p>
+                <p><strong>📚 Аренд:</strong> ${currentUser.rentals?.length || 0}</p>
+                <p><strong>⏱️ Читали:</strong> ${Math.floor(stats.totalMinutes)} мин</p>
+                <p><strong>📖 Прочитано книг:</strong> ${stats.booksRead}</p>
+                <p><strong>📜 История:</strong></p>
+                <ul>${(currentUser.history || []).slice(0,15).map(h => `<li>${h.date} — ${h.text}</li>`).join('')}</ul>
+                <button id="clearHistoryBtn">Очистить историю</button>
+                <hr><button id="showTermsProfileBtn">📜 Показать соглашение</button>
+            </div>`;
+            document.getElementById("clearHistoryBtn")?.addEventListener("click", async () => {
+                if (confirm("Очистить историю?")) { currentUser.history = []; await saveUser(currentUser); renderProfile(); }
+            });
+            document.getElementById("showTermsProfileBtn")?.addEventListener("click", () => showTermsModal());
+        }
+
+        function renderCatalog() {
+            const container = document.getElementById("catalogContainer");
+            let filtered = books.filter(b => {
+                const matchSearch = !searchQuery || b.title.toLowerCase().includes(searchQuery) || b.author.toLowerCase().includes(searchQuery);
+                const matchCat = currentCategory === "Все" || b.category === currentCategory;
+                return matchSearch && matchCat;
+            });
+            if (!filtered.length) { container.innerHTML = '<div class="empty-state">📭 Книги не найдены</div>'; return; }
+            container.innerHTML = filtered.map(book => {
+                const avgRating = book.rating && book.rating.count > 0 ? (book.rating.sum / book.rating.count).toFixed(1) : "нет";
+                return `<div class="book-card">
+                    <img class="book-cover" src="${book.coverUrl || 'https://via.placeholder.com/280x180?text=📖'}" onerror="this.src='https://via.placeholder.com/280x180?text=📖'">
+                    <div class="book-info">
+                        <div class="book-title">${escapeHtml(book.title)} <span class="file-type">PDF</span></div>
+                        <div class="book-author">${escapeHtml(book.author)}</div>
+                        <div class="book-rating">⭐ ${avgRating} (${book.rating?.count || 0})</div>
+                        ${renderVideoLinks(book.videoLinks)}
+                        <div><span class="price-badge ${book.type}">${book.type === "free" ? "Бесплатно" : `💰 ${book.price} руб / ${book.days} дн`}</span></div>
+                        <div class="book-actions">
+                            ${book.type === "free" ? `<button class="rent-btn" data-id="${book.id}">📖 Взять</button>` : `<button class="buy-btn" data-id="${book.id}">💳 Купить</button>`}
+                            ${canRead(book) ? `<button class="read-btn" data-id="${book.id}">📖 Читать</button>` : ''}
+                            ${currentUser?.isAdmin ? `<button class="edit-btn admin-btn" data-id="${book.id}">✏️</button><button class="delete-btn danger" data-id="${book.id}">🗑️</button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            document.querySelectorAll(".rent-btn, .buy-btn, .read-btn, .edit-btn, .delete-btn").forEach(btn => {
+                const id = parseInt(btn.dataset.id);
+                const book = books.find(b => b.id === id);
+                if (!book) return;
+                if (btn.classList.contains("rent-btn")) btn.onclick = () => rentFreeBook(book);
+                if (btn.classList.contains("buy-btn")) btn.onclick = () => buyPaidBook(book);
+                if (btn.classList.contains("read-btn")) btn.onclick = () => readBook(book);
+                if (currentUser?.isAdmin) {
+                    if (btn.classList.contains("edit-btn")) btn.onclick = () => { loadBookToForm(id); document.getElementById("editBookSelect").value = id; };
+                    if (btn.classList.contains("delete-btn")) btn.onclick = () => deleteBookByIdAdmin();
+                }
+            });
+        }
+
+        function renderRentals() {
+            const container = document.getElementById("rentalsList");
+            if (!currentUser || !currentUser.rentals?.length) { container.innerHTML = '<div class="panel">📭 Нет аренд</div>'; return; }
+            container.innerHTML = currentUser.rentals.map(r => `<div style="padding:12px; border-left:4px solid #20b2aa;"><strong>${r.title}</strong> — ${r.author}<br>📅 До: ${r.dueDate}<br>💳 ${r.cost} руб<button class="read-rented" data-id="${r.bookId}">📖 Читать</button></div>`).join('');
+            document.querySelectorAll(".read-rented").forEach(btn => {
+                const book = books.find(b => b.id == btn.dataset.id);
+                if (book) btn.onclick = () => readBook(book);
+            });
+        }
+
+        function renderCategories() {
+            const container = document.getElementById("categoriesContainer");
+            container.innerHTML = categories.map(cat => `<button class="cat-btn ${currentCategory === cat ? 'active' : ''}" data-cat="${cat}">${cat}</button>`).join("");
+            document.querySelectorAll(".cat-btn").forEach(btn => {
+                btn.onclick = () => { currentCategory = btn.dataset.cat; renderCategories(); renderCatalog(); };
+            });
+        }
+
+        function setPage(page) {
+            currentPageName = page;
+            document.getElementById("catalogSection").style.display = page === "catalog" ? "block" : "none";
+            document.getElementById("rentalsSection").style.display = page === "rentals" ? "block" : "none";
+            document.getElementById("discussionsSection").style.display = page === "discussions" ? "block" : "none";
+            document.getElementById("profileSection").style.display = page === "profile" ? "block" : "none";
+            document.getElementById("feedbackSection").style.display = page === "feedback" ? "block" : "none";
+            document.getElementById("adminSection").style.display = (page === "admin" && currentUser?.isAdmin) ? "block" : "none";
+            if (page === "catalog") { renderCategories(); renderCatalog(); }
+            else if (page === "rentals") renderRentals();
+            else if (page === "discussions") renderDiscussions();
+            else if (page === "profile") renderProfile();
+            else if (page === "feedback") renderUserFeedback();
+            else if (page === "admin" && currentUser?.isAdmin) { fillAdminSelect(); fillDiscussionSelect(); renderAdminFeedback(); renderUsersList(); document.getElementById("termsText").value = termsText; }
+            closeMenu();
+        }
+
+        function renderCurrentPage() {
+            if (currentPageName === "catalog") { renderCategories(); renderCatalog(); }
+            else if (currentPageName === "rentals") renderRentals();
+            else if (currentPageName === "discussions") renderDiscussions();
+            else if (currentPageName === "profile") renderProfile();
+            else if (currentPageName === "feedback") renderUserFeedback();
+            else if (currentPageName === "admin" && currentUser?.isAdmin) { fillAdminSelect(); fillDiscussionSelect(); renderAdminFeedback(); renderUsersList(); document.getElementById("termsText").value = termsText; }
+        }
+
+        function openMenu() { document.getElementById("sideMenu").classList.add("open"); document.getElementById("overlay").classList.add("active"); }
+        function closeMenu() { document.getElementById("sideMenu").classList.remove("open"); document.getElementById("overlay").classList.remove("active"); }
+        function showTermsModal() { document.getElementById("termsModalBody").innerHTML = termsText.replace(/\n/g, '<br>'); document.getElementById("termsModal").style.display = "flex"; }
+
+        async function openAuthModal(registerMode = false, isReset = false) {
+            const modal = document.getElementById("authModal");
+            modal.style.display = "flex";
+            const title = document.getElementById("authTitle");
+            const submitBtn = document.getElementById("authSubmitBtn");
+            const switchLink = document.getElementById("switchAuth");
+            const forgotLink = document.getElementById("forgotPasswordLink");
+            const secretQ = document.getElementById("secretQuestion");
+            const secretA = document.getElementById("secretAnswer");
+            const termsContainer = document.getElementById("termsCheckboxContainer");
+            const acceptCheck = document.getElementById("acceptTerms");
+            const usernameInput = document.getElementById("authUsername");
+            const warningDiv = document.getElementById("usernameWarning");
+
+            if (isReset) {
+                title.innerText = "Восстановление пароля";
+                submitBtn.innerText = "Восстановить";
+                switchLink.style.display = "none";
+                forgotLink.style.display = "none";
+                secretQ.style.display = "block";
+                secretA.style.display = "block";
+                termsContainer.style.display = "none";
+                warningDiv.style.display = "none";
+                submitBtn.onclick = async () => {
+                    const username = usernameInput.value.trim();
+                    const answer = secretA.value.trim();
+                    const user = await getUser(username);
+                    if (user && user.secretAnswer === answer) {
+                        const newPass = prompt("Новый пароль:");
+                        if (newPass) { user.password = newPass; await saveUser(user); alert("Пароль изменён!"); closeAuthModal(); openAuthModal(false, false); }
+                    } else alert("Неверно");
+                };
+                return;
+            }
+            secretQ.style.display = "none";
+            secretA.style.display = "none";
+            switchLink.style.display = "block";
+            forgotLink.style.display = "block";
+            if (registerMode) {
+                title.innerText = "Регистрация";
+                submitBtn.innerText = "Зарегистрироваться";
+                switchLink.innerText = "Уже есть аккаунт? Войти";
+                secretQ.style.display = "block";
+                secretA.style.display = "block";
+                termsContainer.style.display = "block";
+                warningDiv.style.display = "block";
+                usernameInput.oninput = async () => {
+                    const val = usernameInput.value.trim();
+                    const user = await getUser(val);
+                    warningDiv.style.display = user ? "block" : "none";
+                };
+                document.getElementById("showTermsLink").onclick = (e) => { e.preventDefault(); showTermsModal(); };
+                submitBtn.onclick = async () => {
+                    const username = usernameInput.value.trim();
+                    const password = document.getElementById("authPassword").value.trim();
+                    const question = secretQ.value.trim();
+                    const answer = secretA.value.trim();
+                    if (!username || !password || !question || !answer) { alert("Заполните все поля"); return; }
+                    if (await getUser(username)) { alert("Логин занят"); return; }
+                    if (!acceptCheck.checked) { alert("Примите условия"); return; }
+                    const newUser = { username, password, secretQuestion: question, secretAnswer: answer, isAdmin: false, rentals: [], history: [], readingStats: { totalMinutes: 0, booksRead: 0 } };
+                    await saveUser(newUser);
+                    currentUser = newUser;
+                    localStorage.setItem("lib_currentUser", currentUser.username);
+                    alert("Регистрация успешна!");
+                    closeAuthModal();
+                    updateUI();
+                };
+            } else {
+                title.innerText = "Вход";
+                submitBtn.innerText = "Войти";
+                switchLink.innerText = "Нет аккаунта? Регистрация";
+                termsContainer.style.display = "none";
+                warningDiv.style.display = "none";
+                submitBtn.onclick = async () => {
+                    const username = usernameInput.value.trim();
+                    const password = document.getElementById("authPassword").value.trim();
+                    const user = await getUser(username);
+                    if (user && user.password === password) {
+                        currentUser = user;
+                        localStorage.setItem("lib_currentUser", currentUser.username);
+                        alert("Добро пожаловать!");
+                        closeAuthModal();
+                        updateUI();
+                    } else alert("Неверный логин или пароль");
+                };
+            }
+            switchLink.onclick = (e) => { e.preventDefault(); openAuthModal(!registerMode, false); };
+            forgotLink.onclick = (e) => { e.preventDefault(); openAuthModal(false, true); };
+        }
+
+        function closeAuthModal() { document.getElementById("authModal").style.display = "none"; }
+        async function logout() { updateReadingTime(); currentUser = null; localStorage.removeItem("lib_currentUser"); await updateUI(); setPage("catalog"); }
+        async function updateUI() {
+            document.getElementById("userBadge").innerText = currentUser ? `${currentUser.username} 👤` : "Войти";
+            document.getElementById("adminMenuItem").style.display = currentUser?.isAdmin ? "flex" : "none";
+            await loadAllData();
+            renderCurrentPage();
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains("light")) {
+                body.classList.remove("light"); body.classList.add("dark");
+                localStorage.setItem("theme", "dark");
+                document.getElementById("themeToggle").innerText = "☀️ Светлая тема";
+            } else {
+                body.classList.remove("dark"); body.classList.add("light");
+                localStorage.setItem("theme", "light");
+                document.getElementById("themeToggle").innerText = "🌙 Тёмная тема";
+            }
+        }
+
+        async function saveTerms() {
+            termsText = document.getElementById("termsText").value;
+            await saveTerms(termsText);
+            alert("Соглашение сохранено");
+        }
+
+        window.onload = async () => {
+            await loadAllData();
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark");
+                document.getElementById("themeToggle").innerText = "☀️ Светлая тема";
+            }
+            document.getElementById("burgerBtn").onclick = openMenu;
+            document.getElementById("overlay").onclick = closeMenu;
+            document.getElementById("closeReadModal").onclick = () => { updateReadingTime(); document.getElementById("readModal").style.display = "none"; };
+            document.getElementById("closeDiscussionModal").onclick = () => document.getElementById("discussionModal").style.display = "none";
+            document.getElementById("closeNewDiscussionModal").onclick = () => document.getElementById("newDiscussionModal").style.display = "none";
+            document.getElementById("closeTermsModal").onclick = () => document.getElementById("termsModal").style.display = "none";
+            document.getElementById("clearSearch").onclick = () => { searchQuery = ""; document.getElementById("searchInput").value = ""; renderCatalog(); };
+            document.getElementById("searchInput").oninput = (e) => { searchQuery = e.target.value.toLowerCase(); renderCatalog(); };
+            document.getElementById("userBadge").onclick = () => { if (currentUser) setPage("profile"); else openAuthModal(false); };
+            document.getElementById("addBookBtn").onclick = addBookWithPDF;
+            document.getElementById("updateBookBtn").onclick = updateBookMetadata;
+            document.getElementById("deleteBookBtn").onclick = deleteBookByIdAdmin;
+            document.getElementById("newType").addEventListener("change", (e) => document.getElementById("newPaidFields").style.display = e.target.value === "paid" ? "block" : "none");
+            document.getElementById("editType").addEventListener("change", (e) => document.getElementById("editPaidFields").style.display = e.target.value === "paid" ? "block" : "none");
+            document.querySelectorAll(".menu-item[data-page]").forEach(el => el.onclick = () => setPage(el.dataset.page));
+            document.getElementById("adminMenuItem").onclick = () => setPage("admin");
+            document.getElementById("logoutMenuItem").onclick = logout;
+            document.getElementById("themeToggle").onclick = toggleTheme;
+            document.getElementById("saveTermsBtn").onclick = saveTerms;
+            document.getElementById("sendFeedbackBtn").onclick = sendFeedback;
+            document.getElementById("exportDBBtn").onclick = exportDatabase;
+            document.getElementById("importDBBtn").onclick = () => document.getElementById("importFileInput").click();
+            document.getElementById("importFileInput").onchange = (e) => { if (e.target.files[0]) importDatabase(e.target.files[0]); };
+            document.getElementById("uploadPDFBtn").onclick = () => document.getElementById("pdfFileInput").click();
+            document.getElementById("newDiscussionBtn").onclick = () => {
+                const select = document.getElementById("discussionBookSelect");
+                select.innerHTML = `<option value="0">Общая тема</option>` + books.map(b => `<option value="${b.id}">${b.title}</option>`).join('');
+                document.getElementById("newDiscussionModal").style.display = "flex";
+            };
+            document.getElementById("createDiscussionBtn").onclick = createDiscussion;
+            document.getElementById("submitCommentBtn").onclick = addDiscussionComment;
+            document.getElementById("pinDiscussionBtn").onclick = () => togglePinDiscussion(parseInt(document.getElementById("editDiscussionSelect").value));
+            document.getElementById("unpinDiscussionBtn").onclick = () => togglePinDiscussion(parseInt(document.getElementById("editDiscussionSelect").value));
+            document.getElementById("deleteDiscussionBtn").onclick = () => deleteDiscussion(parseInt(document.getElementById("editDiscussionSelect").value));
+            document.getElementById("ratingStars").onclick = (e) => {
+                const rect = e.target.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const starSize = rect.width / 5;
+                const rating = Math.floor(clickX / starSize) + 1;
+                if (currentBookId && rating >= 1 && rating <= 5) rateBook(currentBookId, rating);
+            };
+            updateUI();
+            setPage("catalog");
+        };
+
+        function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+    </script>
+</body>
+</html>
