@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Библиотека+ | Админ НЕ авто-вход</title>
+    <title>Библиотека+ | Рабочая версия</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
         body.light { background: #f5f3ef; }
         body.dark { background: #1a1a2e; color: #eee; }
-        body.dark .top-bar, body.dark .filters-bar, body.dark .book-card,
+        body.dark .top-bar, body.dark .filters-bar, body.dark .book-card, 
         body.dark .panel, body.dark .admin-panel, body.dark .modal-content,
         body.dark .book-category, body.dark .cat-btn,
         body.dark .discussion-card, body.dark .comment-card,
@@ -152,7 +152,7 @@
         <div id="discussionsSection" style="display:none;"><div style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:20px;"><h2>💬 Обсуждения</h2><button id="newDiscussionBtn" class="read-btn">➕ Создать тему</button></div><div id="discussionsList" class="discussions-grid"></div></div>
         <div id="profileSection" style="display:none;"><h2>👤 Личный кабинет</h2><div id="profileInfo" class="panel"></div></div>
         <div id="feedbackSection" style="display:none;"><h2>📨 Обратная связь</h2><div class="panel"><textarea id="feedbackText" rows="5" placeholder="Напишите администратору..."></textarea><button id="sendFeedbackBtn">✉️ Отправить</button><div id="userFeedbackList" style="margin-top:20px;"></div></div></div>
-
+        
         <div id="adminSection" style="display:none;" class="admin-panel">
             <h3>⚙️ Админ-панель</h3>
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
@@ -214,7 +214,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
         const DB_NAME = 'LibraryDB';
-        const DB_VERSION = 8;
+        const DB_VERSION = 7;
         let db = null;
 
         function openDB() {
@@ -247,14 +247,8 @@
             });
         }
 
-        async function saveBook(book) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('books', 'readwrite');
-                const store = tx.objectStore('books');
-                const request = store.put(book);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function saveBook(book) {
+            // Now handled by saveAll
         }
 
         async function deleteBookById(id) {
@@ -287,14 +281,8 @@
             });
         }
 
-        async function saveUser(user) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('users', 'readwrite');
-                const store = tx.objectStore('users');
-                const request = store.put(user);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function saveUser(user) {
+            // Now handled by saveAll
         }
 
         async function deleteUser(username) {
@@ -317,14 +305,8 @@
             });
         }
 
-        async function saveDiscussion(discussion) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('discussions', 'readwrite');
-                const store = tx.objectStore('discussions');
-                const request = store.put(discussion);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function saveDiscussion(discussion) {
+            // Now handled by saveAll
         }
 
         async function deleteDiscussionById(id) {
@@ -347,14 +329,8 @@
             });
         }
 
-        async function saveFeedback(feedback) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('feedbacks', 'readwrite');
-                const store = tx.objectStore('feedbacks');
-                const request = store.put(feedback);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function saveFeedback(feedback) {
+            // Now handled by saveAll
         }
 
         async function deleteFeedbackById(id) {
@@ -377,14 +353,8 @@
             });
         }
 
-        async function savePendingPayment(payment) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('pendingPayments', 'readwrite');
-                const store = tx.objectStore('pendingPayments');
-                const request = store.put(payment);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function savePendingPayment(payment) {
+            // Now handled by saveAll
         }
 
         async function deletePendingPaymentById(id) {
@@ -407,24 +377,12 @@
             });
         }
 
-        async function saveTerms(text) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('terms', 'readwrite');
-                const store = tx.objectStore('terms');
-                const request = store.put({ id: 'main', text: text });
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+        function saveTerms(text) {
+            // Now handled by saveAll
         }
 
-        async function exportDatabase() {
-            const books = await getBooks();
-            const users = await getUsers();
-            const discussions = await getDiscussions();
-            const feedbacks = await getFeedbacks();
-            const pendingPayments = await getPendingPayments();
-            const terms = await getTerms();
-            const exportData = { books, users, discussions, feedbacks, pendingPayments, terms, version: 8 };
+        function exportDatabase() {
+            const exportData = { books, users, discussions, feedbacks, pendingPayments, termsText, version: 7 };
             const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -435,17 +393,18 @@
             alert('Экспорт завершён.');
         }
 
-        async function importDatabase(file) {
+        function importDatabase(file) {
             const reader = new FileReader();
-            reader.onload = async (e) => {
+            reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if (data.books) for (let book of data.books) await saveBook(book);
-                    if (data.users) for (let user of data.users) await saveUser(user);
-                    if (data.discussions) for (let disc of data.discussions) await saveDiscussion(disc);
-                    if (data.feedbacks) for (let fb of data.feedbacks) await saveFeedback(fb);
-                    if (data.pendingPayments) for (let pay of data.pendingPayments) await savePendingPayment(pay);
-                    if (data.terms) await saveTerms(data.terms);
+                    if (data.books) books = data.books;
+                    if (data.users) users = data.users;
+                    if (data.discussions) discussions = data.discussions;
+                    if (data.feedbacks) feedbacks = data.feedbacks;
+                    if (data.pendingPayments) pendingPayments = data.pendingPayments;
+                    if (data.termsText) termsText = data.termsText;
+                    saveAll();
                     alert('Импорт успешен! Перезагрузите страницу.');
                     location.reload();
                 } catch(err) {
@@ -472,31 +431,40 @@
         let pdfDoc = null, currentPdfPage = 1;
         const categories = ["Все", "Наука", "Искусство", "Литература", "IT", "Языки", "Гуманитария"];
 
-        async function ensureDefaultUsers() {
-            let admin = await getUser('admin');
+        function ensureDefaultUsers() {
+            let admin = users.find(u => u.username === 'admin');
             if (!admin) {
                 admin = { username: "admin", password: "admin", secretQuestion: "Ваш цвет?", secretAnswer: "синий", isAdmin: true, rentals: [], history: [], readingStats: { totalMinutes: 0, booksRead: 0 } };
-                await saveUser(admin);
+                users.push(admin);
             } else if (admin.password !== "admin") {
                 admin.password = "admin";
-                await saveUser(admin);
             }
-            let reader = await getUser('reader');
+            let reader = users.find(u => u.username === 'reader');
             if (!reader) {
                 reader = { username: "reader", password: "123", secretQuestion: "Ваш город?", secretAnswer: "Москва", isAdmin: false, rentals: [], history: [], readingStats: { totalMinutes: 0, booksRead: 0 } };
-                await saveUser(reader);
+                users.push(reader);
             }
         }
 
-        async function loadAllData() {
-            await openDB();
-            await ensureDefaultUsers();
-            books = await getBooks();
-            users = await getUsers();
-            discussions = await getDiscussions();
-            feedbacks = await getFeedbacks();
-            pendingPayments = await getPendingPayments();
-            termsText = await getTerms();
+        function loadAllData() {
+            const data = localStorage.getItem('lib_data');
+            if (data) {
+                const parsed = JSON.parse(data);
+                books = parsed.books || [];
+                users = parsed.users || [];
+                discussions = parsed.discussions || [];
+                feedbacks = parsed.feedbacks || [];
+                pendingPayments = parsed.pendingPayments || [];
+                termsText = parsed.termsText || '';
+            } else {
+                books = [];
+                users = [];
+                discussions = [];
+                feedbacks = [];
+                pendingPayments = [];
+                termsText = '';
+            }
+            ensureDefaultUsers();
             const stored = localStorage.getItem('lib_currentUser');
             if (stored) {
                 const found = users.find(u => u.username === stored);
@@ -505,12 +473,17 @@
             renderCurrentPage();
         }
 
+        function saveAll() {
+            const data = { books, users, discussions, feedbacks, pendingPayments, termsText };
+            localStorage.setItem('lib_data', JSON.stringify(data));
+        }
+
         function addHistory(desc) {
             if (!currentUser) return;
             currentUser.history = currentUser.history || [];
             currentUser.history.unshift({ text: desc, date: new Date().toLocaleString() });
             if (currentUser.history.length > 50) currentUser.history.pop();
-            saveUser(currentUser);
+            saveAll();
         }
 
         function canRead(book) {
@@ -519,7 +492,7 @@
             return currentUser.rentals?.some(r => r.bookId === book.id && r.status === 'active');
         }
 
-        async function rentFreeBook(book) {
+        function rentFreeBook(book) {
             if (!currentUser) { alert("Сначала войдите"); return; }
             if (currentUser.rentals?.some(r => r.bookId === book.id)) { alert("Уже арендована"); return; }
             const dueDate = new Date();
@@ -531,12 +504,12 @@
                 status: 'active', cost: 0
             });
             addHistory(`Взял(а) "${book.title}"`);
-            await saveUser(currentUser);
+            saveAll();
             alert(`Книга "${book.title}" добавлена!`);
             renderCurrentPage();
         }
 
-        async function buyPaidBook(book) {
+        function buyPaidBook(book) {
             if (!currentUser) { alert("Сначала войдите"); return; }
             if (currentUser.rentals?.some(r => r.bookId === book.id)) { alert("Уже приобретена"); return; }
             if (confirm(`💰 "${book.title}" стоит ${book.price} руб. Оплатить? (демо)`)) {
@@ -549,31 +522,31 @@
                     status: 'active', cost: book.price
                 });
                 addHistory(`Куплена "${book.title}"`);
-                await saveUser(currentUser);
+                saveAll();
                 alert(`✅ Доступ открыт!`);
                 renderCurrentPage();
             }
         }
 
-        async function rateBook(bookId, rating) {
+        function rateBook(bookId, rating) {
             const book = books.find(b => b.id === bookId);
             if (book) {
                 book.rating = book.rating || { sum: 0, count: 0 };
                 book.rating.sum += rating;
                 book.rating.count++;
-                await saveBook(book);
+                saveAll();
                 renderCurrentPage();
                 updateRatingStars();
             }
         }
 
-        async function addComment(bookId, text) {
+        function addComment(bookId, text) {
             if (!currentUser) { alert("Войдите"); return; }
             const book = books.find(b => b.id === bookId);
             if (book) {
                 book.comments = book.comments || [];
                 book.comments.unshift({ user: currentUser.username, text: text, date: new Date().toLocaleString() });
-                await saveBook(book);
+                saveAll();
                 renderComments(bookId);
             }
         }
@@ -652,7 +625,7 @@
             if (currentUser) {
                 currentUser.readingStats = currentUser.readingStats || { totalMinutes: 0, booksRead: 0 };
                 currentUser.readingStats.booksRead++;
-                saveUser(currentUser);
+                saveAll();
             }
         }
 
@@ -674,38 +647,35 @@
                 const minutes = Math.floor((Date.now() - readingStartTime) / 60000);
                 if (minutes > 0) {
                     currentUser.readingStats.totalMinutes += minutes;
-                    saveUser(currentUser);
+                    saveAll();
                 }
                 readingStartTime = null;
             }
         }
 
-        async function renderUsersList() {
+        function renderUsersList() {
             const container = document.getElementById("usersListContainer");
             if (!container) return;
-            const allUsers = await getUsers();
             container.innerHTML = '<h4>Список пользователей:</h4>';
-            allUsers.forEach(user => {
+            users.forEach(user => {
                 const isSelf = currentUser && currentUser.username === user.username;
                 const deleteBtn = (currentUser?.isAdmin && !isSelf) ? `<button class="delete-user-btn danger" data-username="${user.username}">🗑️ Удалить</button>` : '';
                 container.innerHTML += `<div class="user-item"><div><strong>${user.username}</strong> ${user.isAdmin ? '(Админ)' : ''} — аренд: ${user.rentals?.length || 0}</div>${deleteBtn}</div>`;
             });
             document.querySelectorAll('.delete-user-btn').forEach(btn => {
-                btn.onclick = async () => {
+                btn.onclick = () => {
                     const username = btn.dataset.username;
                     if (confirm(`Удалить пользователя "${username}"?`)) {
-                        await deleteUser(username);
+                        users = users.filter(u => u.username !== username);
                         for (let book of books) {
                             if (book.comments) book.comments = book.comments.filter(c => c.user !== username);
-                            await saveBook(book);
                         }
                         for (let disc of discussions) {
-                            if (disc.author === username) await deleteDiscussionById(disc.id);
+                            if (disc.author === username) discussions = discussions.filter(d => d.id !== disc.id);
                             else if (disc.comments) disc.comments = disc.comments.filter(c => c.user !== username);
-                            await saveDiscussion(disc);
                         }
-                        for (let fb of feedbacks) if (fb.from === username) await deleteFeedbackById(fb.id);
-                        await loadAllData();
+                        feedbacks = feedbacks.filter(fb => fb.from !== username);
+                        saveAll();
                         renderUsersList();
                         alert(`Пользователь "${username}" удалён.`);
                     }
@@ -721,7 +691,7 @@
             if (!fileInput.files || !fileInput.files[0]) { alert("Выберите PDF"); return; }
             const file = fileInput.files[0];
             const reader = new FileReader();
-            reader.onload = async (e) => {
+            reader.onload = (e) => {
                 const pdfBase64 = e.target.result;
                 const videoLinksStr = document.getElementById("newVideoLinks").value.trim();
                 const videoLinks = videoLinksStr ? videoLinksStr.split(',').map(s => s.trim()).filter(s => s) : [];
@@ -741,9 +711,10 @@
                     qrCode: document.getElementById("newQR").value,
                     videoLinks: videoLinks
                 };
-                await saveBook(newBook);
+                books.push(newBook);
+                saveAll();
                 alert("Книга добавлена");
-                await loadAllData();
+                loadAllData();
                 renderCurrentPage();
                 fillAdminSelect();
             };
@@ -765,18 +736,19 @@
             book.coverUrl = document.getElementById("editCover").value;
             book.qrCode = document.getElementById("editQR").value;
             book.videoLinks = videoLinks;
-            await saveBook(book);
+            saveAll();
             alert("Обновлено");
-            await loadAllData();
+            loadAllData();
             renderCurrentPage();
             fillAdminSelect();
         }
 
-        async function deleteBookByIdAdmin() {
+        function deleteBookByIdAdmin() {
             const id = parseInt(document.getElementById("editBookSelect").value);
             if (confirm("Удалить книгу?")) {
-                await deleteBookById(id);
-                await loadAllData();
+                books = books.filter(b => b.id !== id);
+                saveAll();
+                loadAllData();
                 renderCurrentPage();
                 fillAdminSelect();
             }
@@ -804,7 +776,7 @@
             document.getElementById("editPaidFields").style.display = book.type === "paid" ? "block" : "none";
         }
 
-        async function renderDiscussions() {
+        function renderDiscussions() {
             const container = document.getElementById("discussionsList");
             if (!container) return;
             const bookMap = {};
@@ -832,53 +804,53 @@
             document.getElementById("discussionComments").innerHTML = commentsHtml || "<p>Нет комментариев</p>";
             document.getElementById("discussionModal").style.display = "flex";
             document.querySelectorAll(".delete-comment-btn").forEach(btn => {
-                btn.onclick = async () => {
+                btn.onclick = () => {
                     const idx = parseInt(btn.dataset.idx);
                     discussion.comments.splice(idx, 1);
-                    await saveDiscussion(discussion);
+                    saveAll();
                     openDiscussion(discussion);
                 };
             });
         }
 
-        async function addDiscussionComment() {
+        function addDiscussionComment() {
             if (!currentUser) return;
             const text = document.getElementById("newCommentText").value.trim();
             if (!text) return;
             const discussion = discussions.find(d => d.id === currentDiscussionId);
             if (discussion) {
                 discussion.comments.push({ user: currentUser.username, text, date: new Date().toLocaleString() });
-                await saveDiscussion(discussion);
+                saveAll();
                 document.getElementById("newCommentText").value = "";
                 openDiscussion(discussion);
             }
         }
 
-        async function createDiscussion() {
+        function createDiscussion() {
             if (!currentUser) { alert("Войдите"); return; }
             const title = document.getElementById("discussionTitle").value.trim();
             const bookId = parseInt(document.getElementById("discussionBookSelect").value);
             const text = document.getElementById("discussionText").value.trim();
             if (!title) return;
             const newDiscussion = { id: Date.now(), title, bookId, author: currentUser.username, text, date: new Date().toLocaleString(), pinned: false, comments: [] };
-            await saveDiscussion(newDiscussion);
-            discussions = await getDiscussions();
+            discussions.push(newDiscussion);
+            saveAll();
             document.getElementById("newDiscussionModal").style.display = "none";
             renderDiscussions();
         }
 
-        async function deleteDiscussion(id) {
+        function deleteDiscussion(id) {
             if (confirm("Удалить тему?")) {
-                await deleteDiscussionById(id);
                 discussions = discussions.filter(d => d.id !== id);
+                saveAll();
                 renderDiscussions();
                 if (currentUser?.isAdmin) fillDiscussionSelect();
             }
         }
 
-        async function togglePinDiscussion(id) {
+        function togglePinDiscussion(id) {
             const d = discussions.find(d => d.id === id);
-            if (d) { d.pinned = !d.pinned; await saveDiscussion(d); renderDiscussions(); }
+            if (d) { d.pinned = !d.pinned; saveAll(); renderDiscussions(); }
         }
 
         function fillDiscussionSelect() {
@@ -886,13 +858,13 @@
             select.innerHTML = discussions.map(d => `<option value="${d.id}">${d.title}</option>`).join("");
         }
 
-        async function sendFeedback() {
+        function sendFeedback() {
             if (!currentUser) { alert("Войдите"); return; }
             const text = document.getElementById("feedbackText").value.trim();
             if (!text) return;
             const newFeedback = { id: Date.now(), from: currentUser.username, text, date: new Date().toLocaleString(), status: "new" };
-            await saveFeedback(newFeedback);
             feedbacks.push(newFeedback);
+            saveAll();
             document.getElementById("feedbackText").value = "";
             renderUserFeedback();
         }
@@ -911,14 +883,14 @@
             document.querySelectorAll(".mark-read-btn").forEach(btn => {
                 btn.onclick = async () => {
                     const fb = feedbacks.find(f => f.id === parseInt(btn.dataset.id));
-                    if (fb) { fb.status = "read"; await saveFeedback(fb); renderAdminFeedback(); }
+                    if (fb) { fb.status = "read"; saveAll(); renderAdminFeedback(); }
                 };
             });
             document.querySelectorAll(".delete-feedback-btn").forEach(btn => {
-                btn.onclick = async () => {
+                btn.onclick = () => {
                     const id = parseInt(btn.dataset.id);
-                    await deleteFeedbackById(id);
                     feedbacks = feedbacks.filter(f => f.id !== id);
+                    saveAll();
                     renderAdminFeedback();
                 };
             });
@@ -939,8 +911,8 @@
                 <button id="clearHistoryBtn">Очистить историю</button>
                 <hr><button id="showTermsProfileBtn">📜 Показать соглашение</button>
             </div>`;
-            document.getElementById("clearHistoryBtn")?.addEventListener("click", async () => {
-                if (confirm("Очистить историю?")) { currentUser.history = []; await saveUser(currentUser); renderProfile(); }
+            document.getElementById("clearHistoryBtn")?.addEventListener("click", () => {
+                if (confirm("Очистить историю?")) { currentUser.history = []; saveAll(); renderProfile(); }
             });
             document.getElementById("showTermsProfileBtn")?.addEventListener("click", () => showTermsModal());
         }
@@ -1056,13 +1028,19 @@
                 secretA.style.display = "block";
                 termsContainer.style.display = "none";
                 warningDiv.style.display = "none";
-                submitBtn.onclick = async () => {
+                submitBtn.onclick = () => {
                     const username = usernameInput.value.trim();
                     const answer = secretA.value.trim();
-                    const user = await getUser(username);
+                    const user = users.find(u => u.username === username);
                     if (user && user.secretAnswer === answer) {
                         const newPass = prompt("Новый пароль:");
-                        if (newPass) { user.password = newPass; await saveUser(user); alert("Пароль изменён!"); closeAuthModal(); openAuthModal(false, false); }
+                        if (newPass) { 
+                            user.password = newPass; 
+                            saveAll();
+                            alert("Пароль изменён!"); 
+                            closeAuthModal(); 
+                            openAuthModal(false, false); 
+                        }
                     } else alert("Неверно");
                 };
                 return;
@@ -1079,22 +1057,22 @@
                 secretA.style.display = "block";
                 termsContainer.style.display = "block";
                 warningDiv.style.display = "block";
-                usernameInput.oninput = async () => {
+                usernameInput.oninput = () => {
                     const val = usernameInput.value.trim();
-                    const user = await getUser(val);
-                    warningDiv.style.display = user ? "block" : "none";
+                    warningDiv.style.display = users.some(u => u.username === val) ? "block" : "none";
                 };
                 document.getElementById("showTermsLink").onclick = (e) => { e.preventDefault(); showTermsModal(); };
-                submitBtn.onclick = async () => {
+                submitBtn.onclick = () => {
                     const username = usernameInput.value.trim();
                     const password = document.getElementById("authPassword").value.trim();
                     const question = secretQ.value.trim();
                     const answer = secretA.value.trim();
                     if (!username || !password || !question || !answer) { alert("Заполните все поля"); return; }
-                    if (await getUser(username)) { alert("Логин занят"); return; }
+                    if (users.some(u => u.username === username)) { alert("Логин занят"); return; }
                     if (!acceptCheck.checked) { alert("Примите условия"); return; }
                     const newUser = { username, password, secretQuestion: question, secretAnswer: answer, isAdmin: false, rentals: [], history: [], readingStats: { totalMinutes: 0, booksRead: 0 } };
-                    await saveUser(newUser);
+                    users.push(newUser);
+                    saveAll();
                     currentUser = newUser;
                     localStorage.setItem("lib_currentUser", currentUser.username);
                     alert("Регистрация успешна!");
@@ -1107,11 +1085,11 @@
                 switchLink.innerText = "Нет аккаунта? Регистрация";
                 termsContainer.style.display = "none";
                 warningDiv.style.display = "none";
-                submitBtn.onclick = async () => {
+                submitBtn.onclick = () => {
                     const username = usernameInput.value.trim();
                     const password = document.getElementById("authPassword").value.trim();
-                    const user = await getUser(username);
-                    if (user && user.password === password) {
+                    const user = users.find(u => u.username === username && u.password === password);
+                    if (user) {
                         currentUser = user;
                         localStorage.setItem("lib_currentUser", currentUser.username);
                         alert("Добро пожаловать!");
@@ -1125,11 +1103,11 @@
         }
 
         function closeAuthModal() { document.getElementById("authModal").style.display = "none"; }
-        async function logout() { updateReadingTime(); currentUser = null; localStorage.removeItem("lib_currentUser"); await updateUI(); setPage("catalog"); }
-        async function updateUI() {
+        function logout() { updateReadingTime(); currentUser = null; localStorage.removeItem("lib_currentUser"); updateUI(); setPage("catalog"); }
+        function updateUI() {
             document.getElementById("userBadge").innerText = currentUser ? `${currentUser.username} 👤` : "Войти";
             document.getElementById("adminMenuItem").style.display = currentUser?.isAdmin ? "flex" : "none";
-            await loadAllData();
+            loadAllData();
             renderCurrentPage();
         }
 
@@ -1146,14 +1124,14 @@
             }
         }
 
-        async function saveTerms() {
+        function saveTerms() {
             termsText = document.getElementById("termsText").value;
-            await saveTerms(termsText);
+            saveAll();
             alert("Соглашение сохранено");
         }
 
-        window.onload = async () => {
-            await loadAllData();
+        window.onload = () => {
+            loadAllData();
             const savedTheme = localStorage.getItem("theme");
             if (savedTheme === "dark") {
                 document.body.classList.add("dark");
